@@ -35,6 +35,17 @@ size = Vector3(10.97, 1.025, 5.92)
 
 [sub_resource type="BoxMesh" id="BoxMesh_ao0on"]
 
+[sub_resource type="NavigationMesh" id="NavigationMesh_n8dvj"]
+vertices = PackedVector3Array(-5.5399547, 0.43165433, -3.4122071, -5.5399547, 0.43165433, 3.3377929, 5.4600453, 0.43165433, 3.3377929, 5.4600453, 0.43165433, -3.4122071)
+polygons = [PackedInt32Array(3, 2, 0), PackedInt32Array(0, 2, 1)]
+
+[sub_resource type="BoxMesh" id="BoxMesh_n8dvj"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2tppu"]
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
+emission_energy_multiplier = 11.02
+
 [node name="StartUp" type="Node3D" unique_id=371762043]
 script = ExtResource("1_xm347")
 
@@ -43,7 +54,7 @@ transform = Transform3D(1, 0, 0, 0, 0.99638695, -0.08493001, 0, 0.08493001, 0.99
 fov = 39.6
 
 [node name="Player" parent="." unique_id=1084416437 instance=ExtResource("4_pyxa2")]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -0.3947311, -1.0653706, 0.029023409)
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, -1.9553916, 0)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Player" unique_id=1577126421]
 environment = SubResource("Environment_ao0on")
@@ -62,7 +73,7 @@ mesh = SubResource("BoxMesh_pyxa2")
 surface_material_override/0 = SubResource("StandardMaterial3D_n8dvj")
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=2077347315]
-transform = Transform3D(4.6487336, 0, 0, 0, -3.97689e-08, -2.186779, 0, 0.9098064, -9.558715e-08, 0.083521366, 0.86414146, 2.6568851)
+transform = Transform3D(4.6487336, 0, 0, 0, -3.97689e-08, -2.186779, 0, 0.9098064, -9.558715e-08, 0.08388138, 0.8641414, 2.6568694)
 material_override = SubResource("StandardMaterial3D_pyxa2")
 mesh = SubResource("PlaneMesh_ao0on")
 
@@ -70,9 +81,18 @@ mesh = SubResource("PlaneMesh_ao0on")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5692877, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=832234130]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, 0, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, 0, 0.071983576, 0)
 shape = SubResource("BoxShape3D_xg6s0")
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="StaticBody3D/CollisionShape3D" unique_id=844171122]
-transform = Transform3D(12.039681, 0, 0, 0, 1, 0, 0, 0, 5.477827, 0, 0, 0)
+transform = Transform3D(12.039682, 0, 0, 0, 1, 0, 0, 0, 5.477827, 0, 0, 0)
 mesh = SubResource("BoxMesh_ao0on")
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="." unique_id=1885414840]
+transform = Transform3D(0.99667, 0, 0, 0, 1, 0, 0, 0, 0.7000943, 0, -1.4038289, 0)
+navigation_mesh = SubResource("NavigationMesh_n8dvj")
+
+[node name="myBox" type="MeshInstance3D" parent="." unique_id=752469316]
+transform = Transform3D(-1.0927847e-08, 0, 0.25, 0, 0.25, 0, -0.25, 0, -1.0927847e-08, -0.3947311, -1.0608677, 0.029023409)
+mesh = SubResource("BoxMesh_n8dvj")
+surface_material_override/0 = SubResource("StandardMaterial3D_2tppu")

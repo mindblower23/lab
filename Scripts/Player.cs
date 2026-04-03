@@ -1,19 +1,27 @@
 using Godot;
 using System;
 
-public partial class Player : Node3D
+public partial class Player : CharacterBody3D
 {
+	private bool isWalking = false;
 	private bool wasLeftPressed = false;
-
-	// Called when the node enters the scene tree for the first time.
+	private NavigationAgent3D _navAgent;
+	private Vector3 _hitPos = Vector3.Zero;
+	private AnimationTree _animationTree;
+	private AnimationNodeStateMachinePlayback _animationStateMachine;
+	private float _rotationSpeed = 7.0f;
+	
+	// Called when the node enters the scene tree for the first time. 
 	public override void _Ready()
 	{
-		
+		_navAgent = GetNode<NavigationAgent3D>("NavigationAgent3D");
+		_animationTree = GetNode<AnimationTree>("AnimationTree");
+		_animationStateMachine = (AnimationNodeStateMachinePlayback)_animationTree.Get("parameters/playback");
 	}
 
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
-	public override void _Process(double delta)
+	public override void _PhysicsProcess(double delta)
 	{
 		bool isPressed = Input.IsMouseButtonPressed(MouseButton.Left);
 		if (isPressed && !wasLeftPressed)
@@ -22,12 +30,56 @@ public partial class Player : Node3D
 			Vector3 hitPos = ShootRay(GetViewport().GetMousePosition());
 			if (hitPos != Vector3.Zero)
 			{
-				GlobalPosition = hitPos;
+				_navAgent.TargetPosition = hitPos;
+				_hitPos = hitPos;
 			}
 		}
+
 		wasLeftPressed = isPressed;
+
+		isWalking = HandleNavigation(delta);
+		if (_animationStateMachine != null)
+		{
+			_animationStateMachine.Travel(isWalking ? "PlayerMotions_Walking" : "PlayerMotions_Idle1 2");
+		}
 	}
 
+	private void HandleMovement(Vector3 velocity)
+	{
+		Velocity = velocity;
+		MoveAndSlide();
+	}
+
+	private bool HandleNavigation(double delta)
+	{
+		if (_navAgent.IsNavigationFinished())
+		{
+			return false;
+		}
+
+		Vector3 nextPathPosition = _navAgent.GetNextPathPosition();
+		Vector3 direction = (nextPathPosition - GlobalPosition).Normalized();
+		if (direction == Vector3.Zero)
+		{
+			return false;
+		}
+
+		Vector3 faceDirection = new Vector3(direction.X, 0, direction.Z);
+		if (faceDirection != Vector3.Zero)
+		{
+			float targetYaw = Mathf.Atan2(faceDirection.X, faceDirection.Z);
+			float currentYaw = GlobalRotation.Y;
+			float newYaw = Mathf.LerpAngle(currentYaw, targetYaw, _rotationSpeed * (float)delta);
+			GlobalRotation = new Vector3(GlobalRotation.X, newYaw, GlobalRotation.Z);
+		}
+
+		float speed = 2.0f; // Adjust speed as needed
+		Vector3 velocity = direction * speed;
+
+		_navAgent.SetVelocity(velocity);
+		HandleMovement(velocity);
+		return true;
+	}
 	public Vector3 ShootRay(Vector2 mousePosition)
 	{
 		Camera3D camera = GetViewport().GetCamera3D();
