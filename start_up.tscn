@@ -4,8 +4,12 @@
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_xm347"]
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xm347"]
+albedo_color = Color(1, 0, 1, 1)
+
 [node name="StartUp" type="Node3D" unique_id=371762043]
 script = ExtResource("1_xm347")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=2009871226]
 mesh = SubResource("CapsuleMesh_xm347")
+surface_material_override/0 = SubResource("StandardMaterial3D_xm347")
