@@ -2,5 +2,10 @@
 
 [ext_resource type="Script" uid="uid://dnhy1ek5exj7g" path="res://Scripts/StartUp.cs" id="1_xm347"]
 
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_xm347"]
+
 [node name="StartUp" type="Node3D" unique_id=371762043]
 script = ExtResource("1_xm347")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=2009871226]
+mesh = SubResource("CapsuleMesh_xm347")
