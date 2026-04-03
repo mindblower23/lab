@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bcokljcc70h87"]
+
+[ext_resource type="Script" uid="uid://c8l6yq8vm2xvx" path="res://Scripts/Box.cs" id="1_0bkxv"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_6xnmj"]
+
+[node name="Node3D" type="Node3D" unique_id=541503192]
+script = ExtResource("1_0bkxv")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1224956893]
+transform = Transform3D(2.5207868, 0, 0, 0, 1.773892, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("BoxMesh_6xnmj")

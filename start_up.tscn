@@ -1,11 +1,12 @@
 [gd_scene format=3 uid="uid://duu0bh0gb4j0m"]
 
 [ext_resource type="Script" uid="uid://dnhy1ek5exj7g" path="res://Scripts/StartUp.cs" id="1_xm347"]
+[ext_resource type="PackedScene" uid="uid://bcokljcc70h87" path="res://Box.tscn" id="2_xg6s0"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_xm347"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xm347"]
-albedo_color = Color(1, 0, 1, 1)
+albedo_color = Color(0.16470589, 0.6509804, 1, 1)
 
 [node name="StartUp" type="Node3D" unique_id=371762043]
 script = ExtResource("1_xm347")
@@ -13,3 +14,9 @@ script = ExtResource("1_xm347")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=2009871226]
 mesh = SubResource("CapsuleMesh_xm347")
 surface_material_override/0 = SubResource("StandardMaterial3D_xm347")
+
+[node name="Node3D" parent="." unique_id=541503192 instance=ExtResource("2_xg6s0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.9779135, 0)
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1730502054]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3942449, -0.2018261, 5.767864)
