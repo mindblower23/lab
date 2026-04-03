@@ -1,0 +1,25 @@
+[gd_resource type="VisualShader" format=3 uid="uid://d2mwxfjh76pog"]
+
+[ext_resource type="Texture2D" uid="uid://csbm0dgyjhnhm" path="res://Background/forest_foreground_transparent.png" id="1_l3ijn"]
+
+[sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_l3ijn"]
+output_port_for_preview = 0
+texture = ExtResource("1_l3ijn")
+
+[sub_resource type="VisualShaderNodeInput" id="VisualShaderNodeInput_l3ijn"]
+input_name = "uv"
+
+[sub_resource type="VisualShaderNodeVectorDecompose" id="VisualShaderNodeVectorDecompose_6doyb"]
+output_port_for_preview = 3
+default_input_values = [0, Quaternion(0, 0, 0, 0)]
+op_type = 2
+
+[resource]
+nodes/fragment/0/position = Vector2(200, 300)
+nodes/fragment/2/node = SubResource("VisualShaderNodeTexture_l3ijn")
+nodes/fragment/2/position = Vector2(-320, 120)
+nodes/fragment/4/node = SubResource("VisualShaderNodeInput_l3ijn")
+nodes/fragment/4/position = Vector2(-700, 260)
+nodes/fragment/5/node = SubResource("VisualShaderNodeVectorDecompose_6doyb")
+nodes/fragment/5/position = Vector2(-60, 240)
+nodes/fragment/connections = PackedInt32Array(2, 0, 5, 0, 4, 0, 2, 0, 5, 3, 0, 1, 5, 0, 0, 0)

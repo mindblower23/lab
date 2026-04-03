@@ -12,6 +12,6 @@ public partial class Box : Node3D
 	public override void _Process(double delta)
 	{
 		// move right at 1 meter per second
-		Translate(new Vector3(1f, 0f, 0f) * (float)delta);
+		Translate(new Vector3(0f, 0f, 1f) * (float)delta);
 	}
 }
