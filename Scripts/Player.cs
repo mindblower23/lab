@@ -10,7 +10,7 @@ using Godot;
 /// </summary>
 public partial class Player : CharacterBody3D
 {
-	
+	[Export] public GpuParticles3D PlayerPositionMarker { get; private set; }
 	[Export] public PlayerAnimationEngine.Emotion CurrentEmotion { get; private set; } = PlayerAnimationEngine.Emotion.Neutral;
 	private enum AnimationState
 	{
@@ -131,6 +131,7 @@ public partial class Player : CharacterBody3D
 				}
 				else
 				{
+					ShowPositionMarker(hit.Value.Position);
 					StartMovement(hit.Value.Position);
 				}
 			}
@@ -138,7 +139,12 @@ public partial class Player : CharacterBody3D
 
 		_wasLeftPressed = isLeftPressed;
 	}
-
+	private void ShowPositionMarker(Vector3 position)
+	{
+		PlayerPositionMarker.GlobalPosition = position;
+		PlayerPositionMarker.Restart();
+		PlayerPositionMarker.Emitting = true;
+	}
 	/// <summary>
 	/// Moves the player into the wave state, clearing any active path so the body
 	/// stops immediately before the animation plays.

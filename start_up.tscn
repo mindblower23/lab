@@ -5,6 +5,9 @@
 [ext_resource type="Texture2D" uid="uid://begakkpi7ggh6" path="res://background.png" id="3_ao0on"]
 [ext_resource type="Script" uid="uid://cdux1tuv3yjfn" path="res://Scripts/WorldEnvironment.cs" id="3_n8dvj"]
 [ext_resource type="PackedScene" uid="uid://iux8qu588cf8" path="res://Player.tscn" id="4_pyxa2"]
+[ext_resource type="Shader" uid="uid://cuj7pdc5c35yq" path="res://moving_tree.tres" id="6_0pxu0"]
+[ext_resource type="Texture2D" uid="uid://c55ju64sgbikm" path="res://Background/tree_sprite.png" id="6_2tppu"]
+[ext_resource type="Texture2D" uid="uid://868uwxc8t7um" path="res://Background/tree_mask.png" id="8_sdncu"]
 
 [sub_resource type="Environment" id="Environment_ao0on"]
 glow_enabled = true
@@ -47,6 +50,50 @@ emission_enabled = true
 emission = Color(1, 1, 1, 1)
 emission_energy_multiplier = 11.02
 
+[sub_resource type="Curve" id="Curve_pyxa2"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_2tppu"]
+curve = SubResource("Curve_pyxa2")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_0pxu0"]
+lifetime_randomness = 0.29
+emission_shape = 1
+emission_sphere_radius = 1.0
+inherit_velocity_ratio = 2.0
+direction = Vector3(0, 10, 0)
+spread = 2.0
+initial_velocity_max = 51.879997
+gravity = Vector3(0, -1, 0)
+scale_min = 0.01
+scale_max = 0.099999994
+scale_curve = SubResource("CurveTexture_2tppu")
+turbulence_enabled = true
+turbulence_noise_scale = 2.627
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sdncu"]
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
+emission_energy_multiplier = 16.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_jpq3f"]
+material = SubResource("StandardMaterial3D_sdncu")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sdncu"]
+render_priority = 0
+shader = ExtResource("6_0pxu0")
+shader_parameter/albedo_texture = ExtResource("6_2tppu")
+shader_parameter/wind_mask = ExtResource("8_sdncu")
+shader_parameter/speed = 2.0
+shader_parameter/strength = 8.0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_sdncu"]
+lightmap_size_hint = Vector2i(52, 52)
+size = Vector2(10, 10)
+subdivide_width = 100
+subdivide_depth = 100
+
 [node name="StartUp" type="Node3D" unique_id=371762043]
 script = ExtResource("1_xm347")
 
@@ -55,9 +102,9 @@ transform = Transform3D(1, 0, 0, 0, 0.99638695, -0.08493001, 0, 0.08493001, 0.99
 fov = 39.6
 script = ExtResource("2_pyxa2")
 
-[node name="Player" parent="." unique_id=1084416437 instance=ExtResource("4_pyxa2")]
+[node name="Player" parent="." unique_id=1084416437 node_paths=PackedStringArray("PlayerPositionMarker") instance=ExtResource("4_pyxa2")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, -0.9613993, 0)
-CurrentEmotion = 2
+PlayerPositionMarker = NodePath("../PositionMarker")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Player" unique_id=1577126421]
 environment = SubResource("Environment_ao0on")
@@ -107,3 +154,18 @@ mesh = SubResource("BoxMesh_ao0on")
 transform = Transform3D(-1.0927847e-08, 0, 0.25, 0, 0.25, 0, -0.25, 0, -1.0927847e-08, -0.3947311, -0.06687534, 0.029023409)
 mesh = SubResource("BoxMesh_n8dvj")
 surface_material_override/0 = SubResource("StandardMaterial3D_2tppu")
+
+[node name="PositionMarker" type="GPUParticles3D" parent="." unique_id=619369348]
+transform = Transform3D(0.28798658, 0, 0, 0, 0.091032565, 0, 0, 0, 0.4896127, -1.9596434, 0.06456512, 0)
+emitting = false
+amount = 50
+lifetime = 0.5
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_0pxu0")
+draw_pass_1 = SubResource("SphereMesh_jpq3f")
+
+[node name="Sprite3D" type="MeshInstance3D" parent="." unique_id=1766019721]
+transform = Transform3D(0.53668016, 0, 0, 0, -2.3459036e-08, -1, 0, 0.53668016, -4.371139e-08, 0.76208687, 3.320856, -11.342613)
+material_override = SubResource("ShaderMaterial_sdncu")
+mesh = SubResource("PlaneMesh_sdncu")
