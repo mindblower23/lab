@@ -12,6 +12,14 @@ public partial class Player : CharacterBody3D
 {
 	
 	[Export] public PlayerAnimationEngine.Emotion CurrentEmotion { get; private set; } = PlayerAnimationEngine.Emotion.Neutral;
+	private enum AnimationState
+	{
+		Idle,
+		Walking,
+		Waving
+	}
+	private AnimationState _currentAnimationState = AnimationState.Idle;
+	private AnimationState _previousAnimationState = AnimationState.Idle;
 	private const float MoveSpeed = 2.0f;
 	private const float StopDistance = 0.15f;
 	private const float DirectionEpsilon = 0.0001f;
@@ -21,7 +29,7 @@ public partial class Player : CharacterBody3D
 	private const string WalkingAnimation = "Walking";
 	private const string IdleAnimation = "Idle";
 	private const string EmoteAnimation = "Emote";
-	private const string WaveAnimationResource = "PlayerMotions/Wave";
+	private const string DefaultEmoteAnimationResource = "PlayerMotions/Emote_Neutral";
 
 	private NavigationAgent3D _navAgent;
 	private Godot.AnimationPlayer _animationPlayer;
@@ -33,8 +41,6 @@ public partial class Player : CharacterBody3D
 	private float _gravity;
 	private float _waveDuration;
 	private float _waveTimeRemaining;
-	private bool _isWalking;
-	private bool _isWaving;
 	private bool _wasLeftPressed;
 	private bool _hasMoveTarget;
 
@@ -60,12 +66,15 @@ public partial class Player : CharacterBody3D
 		_navAgent = GetNode<NavigationAgent3D>("NavigationAgent3D");
 		_animationPlayer = GetNode<Godot.AnimationPlayer>("AnimationPlayer");
 		_animationTree = GetNode<AnimationTree>("AnimationTree");
+		_animationTree.Active = true;
 		_animationStateMachinePlayback = (AnimationNodeStateMachinePlayback)_animationTree.Get("parameters/playback");
 		_animationStateMachine = (AnimationNodeStateMachine)_animationTree.TreeRoot;
 		_gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
 
-		Animation waveAnimation = _animationPlayer.GetAnimation(WaveAnimationResource);
+		Animation waveAnimation = _animationPlayer.GetAnimation(DefaultEmoteAnimationResource);
 		_waveDuration = (waveAnimation?.Length ?? 0.0f) * WaveDurationMultiplier;
+		_previousAnimationState = AnimationState.Waving;
+		UpdateAnimationState();
 	}
 
 	/// <summary>
@@ -81,22 +90,24 @@ public partial class Player : CharacterBody3D
 		HandleClickInput();
 		UpdateWaveState(delta);
 
-		if (_isWaving)
+		if (_currentAnimationState == AnimationState.Waving)
 		{
-			_isWalking = false;
 			RotateTowardsCamera(delta);
 			ApplyMovement(Vector3.Zero, delta);
 		}
 		else
 		{
-			_isWalking = UpdateNavigationMovement(delta);
-			if (!_isWalking)
+			bool isWalking = UpdateNavigationMovement(delta);
+			_currentAnimationState = isWalking ? AnimationState.Walking : AnimationState.Idle;
+			if (!isWalking)
 			{
 				ApplyMovement(Vector3.Zero, delta);
 			}
 		}
 
 		UpdateAnimationState();
+
+		MoveAndSlide();
 	}
 
 	/// <summary>
@@ -135,8 +146,7 @@ public partial class Player : CharacterBody3D
 	private void StartWave()
 	{
 		_hasMoveTarget = false;
-		_isWalking = false;
-		_isWaving = true;
+		_currentAnimationState = AnimationState.Waving;
 		_waveTimeRemaining = _waveDuration;
 		_animationPlayer.SpeedScale = DefaultAnimationSpeedScale / WaveDurationMultiplier;
 		Velocity = new Vector3(0.0f, Velocity.Y, 0.0f);
@@ -149,10 +159,10 @@ public partial class Player : CharacterBody3D
 	/// <param name="targetPosition">World-space destination chosen by the click.</param>
 	private void StartMovement(Vector3 targetPosition)
 	{
+		_currentAnimationState = AnimationState.Walking;
 		_targetPosition = targetPosition;
 		_navAgent.TargetPosition = _targetPosition;
 		_hasMoveTarget = true;
-		_isWaving = false;
 		_waveTimeRemaining = 0.0f;
 		_animationPlayer.SpeedScale = DefaultAnimationSpeedScale;
 	}
@@ -164,7 +174,7 @@ public partial class Player : CharacterBody3D
 	/// <param name="delta">Elapsed physics time since the previous frame.</param>
 	private void UpdateWaveState(double delta)
 	{
-		if (!_isWaving)
+		if (_currentAnimationState != AnimationState.Waving)
 		{
 			return;
 		}
@@ -172,7 +182,7 @@ public partial class Player : CharacterBody3D
 		_waveTimeRemaining = Mathf.Max(0.0f, _waveTimeRemaining - (float)delta);
 		if (_waveTimeRemaining <= 0.0f)
 		{
-			_isWaving = false;
+			_currentAnimationState = AnimationState.Idle;
 			_animationPlayer.SpeedScale = DefaultAnimationSpeedScale;
 		}
 	}
@@ -275,7 +285,6 @@ public partial class Player : CharacterBody3D
 	{
 		float verticalVelocity = IsOnFloor() ? 0.0f : Velocity.Y - (_gravity * (float)delta);
 		Velocity = new Vector3(horizontalVelocity.X, verticalVelocity, horizontalVelocity.Z);
-		MoveAndSlide();
 	}
 
 	/// <summary>
@@ -351,14 +360,20 @@ public partial class Player : CharacterBody3D
 			return;
 		}
 
-		if (_isWaving)
+		if (_currentAnimationState != _previousAnimationState)
 		{
-			_animationStateMachinePlayback.Travel(PlayerAnimationEngine.GetAnimation(CurrentEmotion, EmoteAnimation, _animationStateMachine));
-			return;
+			var animName = _currentAnimationState switch
+			{
+				AnimationState.Idle => IdleAnimation,
+				AnimationState.Walking => WalkingAnimation,
+				AnimationState.Waving => EmoteAnimation,
+				_ => IdleAnimation
+			};
+			_animationStateMachinePlayback.Travel(PlayerAnimationEngine.GetAnimation(CurrentEmotion, animName, _animationStateMachine));
+			_previousAnimationState = _currentAnimationState;
 		}
-		GD.Print(PlayerAnimationEngine.GetAnimation(CurrentEmotion, _isWalking ? WalkingAnimation : IdleAnimation, _animationStateMachine));
-		_animationStateMachinePlayback.Travel(PlayerAnimationEngine.GetAnimation(CurrentEmotion, _isWalking ? WalkingAnimation : IdleAnimation, _animationStateMachine));
 	}
+		
 
 	/// <summary>
 	/// Casts a ray from the active camera through the mouse cursor into the world.

@@ -2,7 +2,7 @@ using Godot;
 
 public static class PlayerAnimationEngine
 {
-    private const string AnimationPrefix = "PlayerMotions_";
+    private const string AnimationLibraryPrefix = "PlayerMotions/";
     public enum Emotion
 	{
 		Neutral,
@@ -13,12 +13,16 @@ public static class PlayerAnimationEngine
 	}
     public static string GetAnimation(Emotion emotion, string baseAnimation, AnimationNodeStateMachine animationNodeStateMachine)
     {
-        ChangeAnimationResource(animationNodeStateMachine, GetAnimationName(emotion, baseAnimation), baseAnimation);
-        return AnimationPrefix + baseAnimation;
+        ChangeAnimationResource(animationNodeStateMachine, GetAnimationKey(emotion, baseAnimation), baseAnimation);
+        return baseAnimation;
     }
-    private static  string GetAnimationName (Emotion emotion, string baseAnimation)
+    private static string GetAnimationKey(Emotion emotion, string baseAnimation)
     {
-           switch (emotion)
+        return $"{AnimationLibraryPrefix}{GetAnimationName(emotion, baseAnimation)}";
+    }
+    private static string GetAnimationName(Emotion emotion, string baseAnimation)
+    {
+        switch (emotion)
         {
             case Emotion.Happy:
                 return $"{baseAnimation}_Happy";
@@ -35,7 +39,7 @@ public static class PlayerAnimationEngine
     }
     private static void ChangeAnimationResource(AnimationNodeStateMachine animationNodeStateMachine, string animationName, string nodeName)
     {
-      var animNode = (AnimationNodeAnimation)animationNodeStateMachine.GetNode(nodeName);
-      animNode.Animation = animationName;
+        var animNode = (AnimationNodeAnimation)animationNodeStateMachine.GetNode(nodeName);
+        animNode.Animation = animationName;
     }
 }
