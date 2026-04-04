@@ -3,13 +3,17 @@ using System;
 
 public partial class Player : CharacterBody3D
 {
+	private const float MoveSpeed = 2.0f;
+	private const float StopDistance = 0.15f;
 	private bool isWalking = false;
 	private bool wasLeftPressed = false;
+	private bool _hasMoveTarget = false;
 	private NavigationAgent3D _navAgent;
 	private Vector3 _hitPos = Vector3.Zero;
 	private AnimationTree _animationTree;
 	private AnimationNodeStateMachinePlayback _animationStateMachine;
 	private float _rotationSpeed = 7.0f;
+	private float _gravity;
 	
 	// Called when the node enters the scene tree for the first time. 
 	public override void _Ready()
@@ -17,6 +21,7 @@ public partial class Player : CharacterBody3D
 		_navAgent = GetNode<NavigationAgent3D>("NavigationAgent3D");
 		_animationTree = GetNode<AnimationTree>("AnimationTree");
 		_animationStateMachine = (AnimationNodeStateMachinePlayback)_animationTree.Get("parameters/playback");
+		_gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
 	}
 
 
@@ -32,37 +37,67 @@ public partial class Player : CharacterBody3D
 			{
 				_navAgent.TargetPosition = hitPos;
 				_hitPos = hitPos;
+				_hasMoveTarget = true;
 			}
 		}
 
 		wasLeftPressed = isPressed;
 
 		isWalking = HandleNavigation(delta);
+		if (!isWalking)
+		{
+			HandleMovement(Vector3.Zero, delta);
+		}
+
 		if (_animationStateMachine != null)
 		{
 			_animationStateMachine.Travel(isWalking ? "PlayerMotions_Walking" : "PlayerMotions_Idle1 2");
 		}
 	}
 
-	private void HandleMovement(Vector3 velocity)
+	private void HandleMovement(Vector3 horizontalVelocity, double delta)
 	{
-		Velocity = velocity;
+		float verticalVelocity = IsOnFloor() ? 0.0f : Velocity.Y - (_gravity * (float)delta);
+		Velocity = new Vector3(horizontalVelocity.X, verticalVelocity, horizontalVelocity.Z);
 		MoveAndSlide();
 	}
 
 	private bool HandleNavigation(double delta)
 	{
-		if (_navAgent.IsNavigationFinished())
+		if (!_hasMoveTarget)
 		{
 			return false;
 		}
 
-		Vector3 nextPathPosition = _navAgent.GetNextPathPosition();
-		Vector3 direction = (nextPathPosition - GlobalPosition).Normalized();
-		if (direction == Vector3.Zero)
+		Vector3 toTarget = _hitPos - GlobalPosition;
+		toTarget.Y = 0.0f;
+		if (toTarget.LengthSquared() <= StopDistance * StopDistance)
+		{
+			_hasMoveTarget = false;
+			return false;
+		}
+
+		Vector3 moveTarget = _hitPos;
+		Vector3[] currentPath = _navAgent.GetCurrentNavigationPath();
+		foreach (Vector3 pathPoint in currentPath)
+		{
+			Vector3 pathOffset = pathPoint - GlobalPosition;
+			pathOffset.Y = 0.0f;
+			if (pathOffset.LengthSquared() > StopDistance * StopDistance)
+			{
+				moveTarget = pathPoint;
+				break;
+			}
+		}
+
+		Vector3 flatDirection = moveTarget - GlobalPosition;
+		flatDirection.Y = 0.0f;
+		if (flatDirection.LengthSquared() <= 0.0001f)
 		{
 			return false;
 		}
+
+		Vector3 direction = flatDirection.Normalized();
 
 		Vector3 faceDirection = new Vector3(direction.X, 0, direction.Z);
 		if (faceDirection != Vector3.Zero)
@@ -73,11 +108,9 @@ public partial class Player : CharacterBody3D
 			GlobalRotation = new Vector3(GlobalRotation.X, newYaw, GlobalRotation.Z);
 		}
 
-		float speed = 2.0f; // Adjust speed as needed
-		Vector3 velocity = direction * speed;
+		Vector3 velocity = direction * MoveSpeed;
 
-		_navAgent.SetVelocity(velocity);
-		HandleMovement(velocity);
+		HandleMovement(velocity, delta);
 		return true;
 	}
 	public Vector3 ShootRay(Vector2 mousePosition)
