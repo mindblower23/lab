@@ -2,31 +2,39 @@
 
 [resource]
 code = "shader_type spatial;
+
 uniform sampler2D albedo_texture : source_color;
 uniform sampler2D wind_mask;
+// NEU: Eine Noise-Textur für das Zittern der Blätter
+uniform sampler2D noise_tex; 
+
 uniform float speed = 1.0;
-uniform float strength = 8.0;
+uniform float strength = 0.2;
+uniform float detail_strength = 0.05; // Das kleine Zittern
 
 void vertex() {
-	// Called for every vertex the material is visible on.
-	float mask = textureLod(wind_mask, UV, 0.0).r;
-	float wave = sin(TIME * speed * NODE_POSITION_WORLD.x);
-	VERTEX.x += wave * strength * mask;
-	//float world_x = NODE_POSITION_WORLD.x;
-	//float body_sway = sin(TIME * speed * world_x);
-	//VERTEX.x += body_sway;
+    float mask = textureLod(wind_mask, UV, 0.0).r;
+    
+    // 1. Die große Hauptbewegung (Sway)
+    float main_wave = sin(TIME * speed + (NODE_POSITION_WORLD.x + VERTEX.x) * 0.2);
+    
+    // 2. Das kleine Zittern (Noise)
+    // Wir lesen die Noise-Textur basierend auf Zeit und Position
+    vec2 noise_uv = UV + (TIME * speed * 0.5);
+    float noise_val = textureLod(noise_tex, noise_uv, 0.0).r - 0.5;
+    
+    // Kombiniere beide: Hauptbewegung + Zittern
+    float final_movement = (main_wave * strength) + (noise_val * detail_strength);
+    
+    // Wende die Maske an
+    VERTEX.x += final_movement * mask;
+    // Optional: Ein bisschen Y-Bewegung macht es 3D-mäßiger
+    VERTEX.y += noise_val * detail_strength * mask;
 }
 
 void fragment() {
-	// Called for every pixel the material is visible on.
-	vec4 tex = texture(albedo_texture, UV);
-	ALBEDO = tex.rgb;
-	ALPHA = tex.a;
-	ALPHA_SCISSOR_THRESHOLD = 0.5;
-}
-
-//void light() {
-//	// Called for every pixel for every light affecting the CanvasItem.
-//	// Uncomment to replace the default light processing function with this one.
-//}
-"
+    vec4 tex = texture(albedo_texture, UV);
+    ALBEDO = tex.rgb;
+    ALPHA = tex.a;
+    ALPHA_SCISSOR_THRESHOLD = 0.5;
+}"
