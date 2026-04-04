@@ -57,6 +57,7 @@ script = ExtResource("2_pyxa2")
 
 [node name="Player" parent="." unique_id=1084416437 instance=ExtResource("4_pyxa2")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, -0.9613993, 0)
+CurrentEmotion = 2
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Player" unique_id=1577126421]
 environment = SubResource("Environment_ao0on")

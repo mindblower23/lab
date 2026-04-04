@@ -1,5 +1,4 @@
 using Godot;
-
 /// <summary>
 /// Controls a click-to-move character in a 3D scene.
 /// The player clicks on the world to set a destination, the navigation agent
@@ -11,23 +10,45 @@ using Godot;
 /// </summary>
 public partial class Player : CharacterBody3D
 {
+	
+	[Export] public PlayerAnimationEngine.Emotion CurrentEmotion { get; private set; } = PlayerAnimationEngine.Emotion.Neutral;
 	private const float MoveSpeed = 2.0f;
 	private const float StopDistance = 0.15f;
 	private const float DirectionEpsilon = 0.0001f;
 	private const float RayLength = 1000.0f;
-	private const string WalkingAnimation = "PlayerMotions_Walking";
-	private const string IdleAnimation = "PlayerMotions_Idle1 2";
-	private const string WaveAnimation = "PlayerMotions_Wave";
+	private const float DefaultAnimationSpeedScale = 1.0f;
+	private const float WaveDurationMultiplier = 3.0f;
+	private const string WalkingAnimation = "Walking";
+	private const string IdleAnimation = "Idle";
+	private const string EmoteAnimation = "Emote";
+	private const string WaveAnimationResource = "PlayerMotions/Wave";
 
 	private NavigationAgent3D _navAgent;
+	private Godot.AnimationPlayer _animationPlayer;
 	private AnimationTree _animationTree;
-	private AnimationNodeStateMachinePlayback _animationStateMachine;
+	private AnimationNodeStateMachinePlayback _animationStateMachinePlayback;
+	private AnimationNodeStateMachine _animationStateMachine;
 	private Vector3 _targetPosition = Vector3.Zero;
 	private float _rotationSpeed = 7.0f;
 	private float _gravity;
+	private float _waveDuration;
+	private float _waveTimeRemaining;
 	private bool _isWalking;
+	private bool _isWaving;
 	private bool _wasLeftPressed;
 	private bool _hasMoveTarget;
+
+	private readonly struct RaycastHit
+	{
+		public RaycastHit(Vector3 position, GodotObject collider)
+		{
+			Position = position;
+			Collider = collider;
+		}
+
+		public Vector3 Position { get; }
+		public GodotObject Collider { get; }
+	}
 
 	/// <summary>
 	/// Resolves and caches the child nodes and project settings used during gameplay.
@@ -37,9 +58,14 @@ public partial class Player : CharacterBody3D
 	public override void _Ready()
 	{
 		_navAgent = GetNode<NavigationAgent3D>("NavigationAgent3D");
+		_animationPlayer = GetNode<Godot.AnimationPlayer>("AnimationPlayer");
 		_animationTree = GetNode<AnimationTree>("AnimationTree");
-		_animationStateMachine = (AnimationNodeStateMachinePlayback)_animationTree.Get("parameters/playback");
+		_animationStateMachinePlayback = (AnimationNodeStateMachinePlayback)_animationTree.Get("parameters/playback");
+		_animationStateMachine = (AnimationNodeStateMachine)_animationTree.TreeRoot;
 		_gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
+
+		Animation waveAnimation = _animationPlayer.GetAnimation(WaveAnimationResource);
+		_waveDuration = (waveAnimation?.Length ?? 0.0f) * WaveDurationMultiplier;
 	}
 
 	/// <summary>
@@ -52,12 +78,22 @@ public partial class Player : CharacterBody3D
 	/// <param name="delta">Elapsed physics time since the previous frame.</param>
 	public override void _PhysicsProcess(double delta)
 	{
-		UpdateMoveTargetFromMouse();
+		HandleClickInput();
+		UpdateWaveState(delta);
 
-		_isWalking = UpdateNavigationMovement(delta);
-		if (!_isWalking)
+		if (_isWaving)
 		{
+			_isWalking = false;
+			RotateTowardsCamera(delta);
 			ApplyMovement(Vector3.Zero, delta);
+		}
+		else
+		{
+			_isWalking = UpdateNavigationMovement(delta);
+			if (!_isWalking)
+			{
+				ApplyMovement(Vector3.Zero, delta);
+			}
 		}
 
 		UpdateAnimationState();
@@ -70,21 +106,94 @@ public partial class Player : CharacterBody3D
 	/// When the raycast hits something, both the local target cache and the navigation
 	/// agent target are updated so pathfinding and movement stay in sync.
 	/// </summary>
-	private void UpdateMoveTargetFromMouse()
+	private void HandleClickInput()
 	{
 		bool isLeftPressed = Input.IsMouseButtonPressed(MouseButton.Left);
 		if (isLeftPressed && !_wasLeftPressed)
 		{
-			Vector3? hitPosition = TryShootRay(GetViewport().GetMousePosition());
-			if (hitPosition.HasValue)
+			RaycastHit? hit = TryShootRay(GetViewport().GetMousePosition());
+			if (hit.HasValue)
 			{
-				_targetPosition = hitPosition.Value;
-				_navAgent.TargetPosition = _targetPosition;
-				_hasMoveTarget = true;
+				if (DidClickPlayer(hit.Value.Collider))
+				{
+					StartWave();
+				}
+				else
+				{
+					StartMovement(hit.Value.Position);
+				}
 			}
 		}
 
 		_wasLeftPressed = isLeftPressed;
+	}
+
+	/// <summary>
+	/// Moves the player into the wave state, clearing any active path so the body
+	/// stops immediately before the animation plays.
+	/// </summary>
+	private void StartWave()
+	{
+		_hasMoveTarget = false;
+		_isWalking = false;
+		_isWaving = true;
+		_waveTimeRemaining = _waveDuration;
+		_animationPlayer.SpeedScale = DefaultAnimationSpeedScale / WaveDurationMultiplier;
+		Velocity = new Vector3(0.0f, Velocity.Y, 0.0f);
+	}
+
+	/// <summary>
+	/// Starts or resumes navigation toward a clicked world position and interrupts
+	/// any currently playing wave animation.
+	/// </summary>
+	/// <param name="targetPosition">World-space destination chosen by the click.</param>
+	private void StartMovement(Vector3 targetPosition)
+	{
+		_targetPosition = targetPosition;
+		_navAgent.TargetPosition = _targetPosition;
+		_hasMoveTarget = true;
+		_isWaving = false;
+		_waveTimeRemaining = 0.0f;
+		_animationPlayer.SpeedScale = DefaultAnimationSpeedScale;
+	}
+
+	/// <summary>
+	/// Counts down the one-shot wave animation and returns the player to the normal
+	/// idle or walking flow when the clip duration has elapsed.
+	/// </summary>
+	/// <param name="delta">Elapsed physics time since the previous frame.</param>
+	private void UpdateWaveState(double delta)
+	{
+		if (!_isWaving)
+		{
+			return;
+		}
+
+		_waveTimeRemaining = Mathf.Max(0.0f, _waveTimeRemaining - (float)delta);
+		if (_waveTimeRemaining <= 0.0f)
+		{
+			_isWaving = false;
+			_animationPlayer.SpeedScale = DefaultAnimationSpeedScale;
+		}
+	}
+
+	/// <summary>
+	/// Checks whether the clicked collider belongs to this player body or one of its children.
+	/// This allows future scene changes to keep working even if the raycast no longer reports
+	/// the CharacterBody3D node directly.
+	/// </summary>
+	/// <param name="collider">Collider returned by the raycast.</param>
+	/// <returns>
+	/// <c>true</c> when the clicked collider is the player or a descendant of the player.
+	/// </returns>
+	private bool DidClickPlayer(GodotObject collider)
+	{
+		if (collider is not Node node)
+		{
+			return false;
+		}
+
+		return node == this || IsAncestorOf(node);
 	}
 
 	/// <summary>
@@ -192,6 +301,28 @@ public partial class Player : CharacterBody3D
 	}
 
 	/// <summary>
+	/// Rotates the player toward the active camera while waving so the gesture is
+	/// presented toward the viewer instead of keeping the previous move direction.
+	/// </summary>
+	/// <param name="delta">Elapsed physics time since the previous frame.</param>
+	private void RotateTowardsCamera(double delta)
+	{
+		Camera3D camera = GetViewport().GetCamera3D();
+		if (camera == null)
+		{
+			return;
+		}
+
+		Vector3 faceDirection = FlattenToFloor(camera.GlobalPosition - GlobalPosition);
+		if (faceDirection.LengthSquared() <= DirectionEpsilon)
+		{
+			return;
+		}
+
+		RotateTowards(faceDirection.Normalized(), delta);
+	}
+
+	/// <summary>
 	/// Removes the vertical component from a vector so only floor-plane movement remains.
 	/// This is used to prevent navigation points above or below the player from injecting
 	/// artificial upward or downward steering into the movement direction.
@@ -215,12 +346,18 @@ public partial class Player : CharacterBody3D
 	/// </summary>
 	private void UpdateAnimationState()
 	{
-		if (_animationStateMachine == null)
+		if (_animationStateMachinePlayback == null)
 		{
 			return;
 		}
 
-		_animationStateMachine.Travel(_isWalking ? WalkingAnimation : IdleAnimation);
+		if (_isWaving)
+		{
+			_animationStateMachinePlayback.Travel(PlayerAnimationEngine.GetAnimation(CurrentEmotion, EmoteAnimation, _animationStateMachine));
+			return;
+		}
+		GD.Print(PlayerAnimationEngine.GetAnimation(CurrentEmotion, _isWalking ? WalkingAnimation : IdleAnimation, _animationStateMachine));
+		_animationStateMachinePlayback.Travel(PlayerAnimationEngine.GetAnimation(CurrentEmotion, _isWalking ? WalkingAnimation : IdleAnimation, _animationStateMachine));
 	}
 
 	/// <summary>
@@ -233,7 +370,7 @@ public partial class Player : CharacterBody3D
 	/// <returns>
 	/// The world-space hit position under the mouse cursor, or <c>null</c> if nothing was hit.
 	/// </returns>
-	private Vector3? TryShootRay(Vector2 mousePosition)
+	private RaycastHit? TryShootRay(Vector2 mousePosition)
 	{
 		Camera3D camera = GetViewport().GetCamera3D();
 		if (camera == null)
@@ -249,7 +386,16 @@ public partial class Player : CharacterBody3D
 		PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(rayOrigin, rayEnd);
 		PhysicsDirectSpaceState3D space = GetWorld3D().DirectSpaceState;
 		var result = space.IntersectRay(query);
+		if (result.Count == 0 || !result.ContainsKey("position") || !result.ContainsKey("collider"))
+		{
+			return null;
+		}
 
-		return result.Count > 0 ? (Vector3)result["position"] : null;
+		if (result["collider"].Obj is not GodotObject collider)
+		{
+			return null;
+		}
+
+		return new RaycastHit((Vector3)result["position"], collider);
 	}
 }
