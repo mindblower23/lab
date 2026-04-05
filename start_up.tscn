@@ -7,14 +7,9 @@
 [ext_resource type="PackedScene" uid="uid://iux8qu588cf8" path="res://Player.tscn" id="4_pyxa2"]
 [ext_resource type="Shader" uid="uid://cuj7pdc5c35yq" path="res://moving_tree.tres" id="6_0pxu0"]
 [ext_resource type="Texture2D" uid="uid://c55ju64sgbikm" path="res://Background/tree_sprite.png" id="6_2tppu"]
-[ext_resource type="Texture2D" uid="uid://qavqfuqjb4c6" path="res://Background/tree_mask.png" id="8_sdncu"]
-
-[sub_resource type="Environment" id="Environment_ao0on"]
-glow_enabled = true
-glow_intensity = 0.14
-volumetric_fog_density = 0.1943
-adjustment_enabled = true
-adjustment_contrast = 1.05
+[ext_resource type="Texture2D" uid="uid://e43fhotxgac1" path="res://Background/tree_mask.jpg" id="6_jpq3f"]
+[ext_resource type="PackedScene" uid="uid://bavmur20e1wip" path="res://small_box.tscn" id="9_jpq3f"]
+[ext_resource type="PackedScene" uid="uid://in40v5pukotb" path="res://TerrainArea.tscn" id="10_udifm"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_n8dvj"]
 
@@ -42,13 +37,6 @@ vertices = PackedVector3Array(-5.5399556, 0.767836, -3.4122078, -5.5399556, 0.76
 polygons = [PackedInt32Array(3, 2, 4), PackedInt32Array(4, 2, 5), PackedInt32Array(4, 5, 1), PackedInt32Array(4, 1, 0)]
 
 [sub_resource type="BoxMesh" id="BoxMesh_ao0on"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_n8dvj"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2tppu"]
-emission_enabled = true
-emission = Color(1, 1, 1, 1)
-emission_energy_multiplier = 11.02
 
 [sub_resource type="Curve" id="Curve_pyxa2"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -80,11 +68,19 @@ emission_energy_multiplier = 16.0
 [sub_resource type="SphereMesh" id="SphereMesh_jpq3f"]
 material = SubResource("StandardMaterial3D_sdncu")
 
+[sub_resource type="Animation" id="Animation_sdncu"]
+resource_name = "Particles"
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_jpq3f"]
+_data = {
+&"Particles": SubResource("Animation_sdncu")
+}
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sdncu"]
 render_priority = 0
 shader = ExtResource("6_0pxu0")
 shader_parameter/albedo_texture = ExtResource("6_2tppu")
-shader_parameter/wind_mask = ExtResource("8_sdncu")
+shader_parameter/wind_mask = ExtResource("6_jpq3f")
 shader_parameter/speed = 1.0
 shader_parameter/strength = 0.25
 shader_parameter/detail_strength = 0.5
@@ -95,21 +91,25 @@ size = Vector2(10, 10)
 subdivide_width = 10
 subdivide_depth = 10
 
+[sub_resource type="Environment" id="Environment_ao0on"]
+ambient_light_source = 1
+sdfgi_enabled = true
+glow_intensity = 0.14
+fog_light_energy = 3.47
+fog_sky_affect = 0.175
+fog_height = -105.57
+fog_height_density = 3.6289
+volumetric_fog_density = 0.1943
+adjustment_enabled = true
+adjustment_contrast = 1.05
+
 [node name="StartUp" type="Node3D" unique_id=371762043]
 script = ExtResource("1_xm347")
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=1730502054]
-transform = Transform3D(1, 0, 0, 0, 0.99638695, -0.08493001, 0, 0.08493001, 0.99638695, -0.13520646, 1.4832567, 8.08699)
-fov = 39.6
-script = ExtResource("2_pyxa2")
-
 [node name="Player" parent="." unique_id=1084416437 node_paths=PackedStringArray("PlayerPositionMarker") instance=ExtResource("4_pyxa2")]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, -0.9613993, 0)
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -1.1402866, -0.9613993, 4.9843507e-08)
 PlayerPositionMarker = NodePath("../PositionMarker")
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="Player" unique_id=1577126421]
-environment = SubResource("Environment_ao0on")
-script = ExtResource("3_n8dvj")
+CurrentEmotion = 2
 
 [node name="Area3D" type="Area3D" parent="." unique_id=1761223852]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 1.3403721, -12.447248)
@@ -128,14 +128,14 @@ transform = Transform3D(4.6487336, 0, 0, 0, -3.97689e-08, -2.186779, 0, 0.909806
 material_override = SubResource("StandardMaterial3D_pyxa2")
 mesh = SubResource("PlaneMesh_ao0on")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=1157064429]
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1157064429]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5752953, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=832234130]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=832234130]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, 0, 0.071983576, 0)
 shape = SubResource("BoxShape3D_xg6s0")
 
-[node name="CollisionShape3D2" type="CollisionShape3D" parent="StaticBody3D" unique_id=1657276373]
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Floor" unique_id=1657276373]
 transform = Transform3D(0.98953336, -0.14430438, 0, 0.14430438, 0.98953336, 0, 0, 0, 1.0000002, 11.137186, 0.796751, 0)
 shape = SubResource("BoxShape3D_xg6s0")
 
@@ -151,11 +151,6 @@ mesh = SubResource("BoxMesh_ao0on")
 transform = Transform3D(11.953475, -0.14478654, 0, 1.7373791, 0.98953336, 0, 0, 0, 7.8244157, 11.174397, 0.6312922, 0)
 mesh = SubResource("BoxMesh_ao0on")
 
-[node name="myBox" type="MeshInstance3D" parent="." unique_id=752469316]
-transform = Transform3D(-1.0927847e-08, 0, 0.25, 0, 0.25, 0, -0.25, 0, -1.0927847e-08, -0.3947311, -0.06687534, 0.029023409)
-mesh = SubResource("BoxMesh_n8dvj")
-surface_material_override/0 = SubResource("StandardMaterial3D_2tppu")
-
 [node name="PositionMarker" type="GPUParticles3D" parent="." unique_id=619369348]
 transform = Transform3D(0.28798658, 0, 0, 0, 0.091032565, 0, 0, 0, 0.4896127, -1.9596434, 0.06456512, 0)
 emitting = false
@@ -166,7 +161,37 @@ explosiveness = 1.0
 process_material = SubResource("ParticleProcessMaterial_0pxu0")
 draw_pass_1 = SubResource("SphereMesh_jpq3f")
 
+[node name="AnimationPlayer" type="AnimationPlayer" parent="PositionMarker" unique_id=1974819961]
+libraries/ = SubResource("AnimationLibrary_jpq3f")
+
 [node name="Sprite3D" type="MeshInstance3D" parent="." unique_id=1766019721]
 transform = Transform3D(0.91152245, 0, 0, 0, -2.3459036e-08, -1, 0, 0.53668016, -4.371139e-08, 0.76208687, 3.320856, -11.342613)
 material_override = SubResource("ShaderMaterial_sdncu")
 mesh = SubResource("PlaneMesh_sdncu")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1577126421]
+environment = SubResource("Environment_ao0on")
+script = ExtResource("3_n8dvj")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1730502054]
+transform = Transform3D(1, 0, 0, 0, 0.99638695, -0.08493001, 0, 0.08493001, 0.99638695, -0.13520646, 1.4832566, 8.08699)
+fov = 39.6
+script = ExtResource("2_pyxa2")
+
+[node name="SmallBox" parent="." unique_id=512120657 instance=ExtResource("9_jpq3f")]
+
+[node name="SmallBox2" parent="." unique_id=440370082 instance=ExtResource("9_jpq3f")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.601222, 0, 0)
+
+[node name="TerrainArea" parent="." unique_id=2032575562 instance=ExtResource("10_udifm")]
+transform = Transform3D(6.585, 0, 0, 0, 6.585, 0, 0, 0, 6.585, -3.4544554, 0, 0.16146684)
+Type = 1
+
+[node name="TerrainArea2" parent="." unique_id=965008949 instance=ExtResource("10_udifm")]
+transform = Transform3D(6.865, 0, 0, 0, 6.865, 0, 0, 0, 6.865, 3.4905171, 0, 0.16146684)
+
+[node name="CollisionShape3D" parent="TerrainArea2/Area3D" parent_id_path=PackedInt32Array(965008949, 707736745) index="0" unique_id=1730529477]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.021652782, 0, 0)
+
+[editable path="TerrainArea"]
+[editable path="TerrainArea2"]

@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://in40v5pukotb"]
+
+[ext_resource type="Script" uid="uid://cpxip4ustn8vg" path="res://Scripts/TerrainArea.cs" id="1_mi7q8"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_q3ac1"]
+
+[node name="TerrainArea" type="Node3D" unique_id=2032575562]
+script = ExtResource("1_mi7q8")
+
+[node name="Area3D" type="Area3D" parent="." unique_id=707736745]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1730529477]
+shape = SubResource("BoxShape3D_q3ac1")

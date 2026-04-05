@@ -1,3 +1,4 @@
+using System;
 using Godot;
 /// <summary>
 /// Controls a click-to-move character in a 3D scene.
@@ -418,5 +419,25 @@ public partial class Player : CharacterBody3D
 		}
 
 		return new RaycastHit((Vector3)result["position"], collider);
+	}
+	public void _on_area_3d_2_body_entered(GodotObject body, GodotObject source)
+    {
+		GD.Print("Body entered: " + body.ToString());
+        if (source is Area3D area)
+        {
+            GD.Print("Entered area: " + area.Name);
+			area.QueueFree();
+        }
+        else
+        {
+            GD.Print("Entered area: " + body.ToString());
+        }
+
+        
+
+    }
+	public void ShoutOutTerrainType(TerrainArea.TerrainType terrainType)
+	{
+		GD.Print("Shouting out terrain type: " + terrainType);
 	}
 }
