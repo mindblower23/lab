@@ -20,8 +20,8 @@ public partial class Player : CharacterBody3D
 		Waving
 	}
 	private AnimationState _currentAnimationState = AnimationState.Idle;
-	private AnimationState _previousAnimationState = AnimationState.Idle;
-	private const float MoveSpeed = 2.0f;
+	private AnimationState? _previousAnimationState = AnimationState.Idle;
+	private float MoveSpeed = 2.0f;
 	private const float StopDistance = 0.15f;
 	private const float DirectionEpsilon = 0.0001f;
 	private const float RayLength = 1000.0f;
@@ -72,10 +72,23 @@ public partial class Player : CharacterBody3D
 		_animationStateMachine = (AnimationNodeStateMachine)_animationTree.TreeRoot;
 		_gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
 
+		EventBus.Instance.EmotionChanged += (newEmotion) =>
+		{
+			var animationState = _currentAnimationState;
+			_currentAnimationState = _currentAnimationState == AnimationState.Waving || _currentAnimationState == AnimationState.Walking
+				? AnimationState.Idle
+				: AnimationState.Walking;
+			UpdateAnimationState();
+			_currentAnimationState = animationState;
+			CurrentEmotion = (PlayerAnimationEngine.Emotion)newEmotion;
+			UpdateAnimationState();
+		};
+
 		Animation waveAnimation = _animationPlayer.GetAnimation(DefaultEmoteAnimationResource);
 		_waveDuration = (waveAnimation?.Length ?? 0.0f) * WaveDurationMultiplier;
 		_previousAnimationState = AnimationState.Waving;
 		UpdateAnimationState();
+
 	}
 
 	/// <summary>
@@ -376,7 +389,10 @@ public partial class Player : CharacterBody3D
 				AnimationState.Waving => EmoteAnimation,
 				_ => IdleAnimation
 			};
-			_animationStateMachinePlayback.Travel(PlayerAnimationEngine.GetAnimation(CurrentEmotion, animName, _animationStateMachine));
+			var animationData = PlayerAnimationEngine.GetAnimation(CurrentEmotion, animName, _animationStateMachine);
+			MoveSpeed = animationData.speed;
+
+			_animationStateMachinePlayback.Travel(animationData.animationName);
 			_previousAnimationState = _currentAnimationState;
 		}
 	}

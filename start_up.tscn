@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dnhy1ek5exj7g" path="res://Scripts/StartUp.cs" id="1_xm347"]
 [ext_resource type="Script" uid="uid://cea4xp626liuc" path="res://Scripts/Camera.cs" id="2_pyxa2"]
 [ext_resource type="Texture2D" uid="uid://begakkpi7ggh6" path="res://background.png" id="3_ao0on"]
+[ext_resource type="PackedScene" uid="uid://cro4cnnnhmmhx" path="res://UI.tscn" id="3_lh8og"]
 [ext_resource type="Script" uid="uid://cdux1tuv3yjfn" path="res://Scripts/WorldEnvironment.cs" id="3_n8dvj"]
 [ext_resource type="PackedScene" uid="uid://iux8qu588cf8" path="res://Player.tscn" id="4_pyxa2"]
 [ext_resource type="Shader" uid="uid://cuj7pdc5c35yq" path="res://moving_tree.tres" id="6_0pxu0"]
@@ -192,6 +193,8 @@ transform = Transform3D(6.865, 0, 0, 0, 6.865, 0, 0, 0, 6.865, 3.4905171, 0, 0.1
 
 [node name="CollisionShape3D" parent="TerrainArea2/Area3D" parent_id_path=PackedInt32Array(965008949, 707736745) index="0" unique_id=1730529477]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.021652782, 0, 0)
+
+[node name="Control" parent="." unique_id=1837913859 instance=ExtResource("3_lh8og")]
 
 [editable path="TerrainArea"]
 [editable path="TerrainArea2"]

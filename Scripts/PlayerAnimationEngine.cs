@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 
 public static class PlayerAnimationEngine
@@ -11,10 +12,27 @@ public static class PlayerAnimationEngine
 		Angry,
 		Surprised
 	}
-    public static string GetAnimation(Emotion emotion, string baseAnimation, AnimationNodeStateMachine animationNodeStateMachine)
+
+    public readonly record struct EmotionSettings(
+        Emotion Emotion,
+        float Speed,
+        float XFade
+    );
+
+    private static readonly Dictionary<Emotion, EmotionSettings> EmotionSettingsMap = new()
+{
+    [Emotion.Neutral] = new(Emotion.Neutral, 2.0f, 0.2f),
+    [Emotion.Happy] = new(Emotion.Happy, 1.2f, 0.15f),
+    [Emotion.Sad] = new(Emotion.Sad, 0.8f, 0.3f),
+    [Emotion.Angry] = new(Emotion.Angry, 1.4f, 0.1f),
+    [Emotion.Surprised] = new(Emotion.Surprised, 1.1f, 0.25f)
+};
+
+    public static (string animationName, float speed, float xFade) GetAnimation(Emotion emotion, string baseAnimation, AnimationNodeStateMachine animationNodeStateMachine)
     {
         ChangeAnimationResource(animationNodeStateMachine, GetAnimationKey(emotion, baseAnimation), baseAnimation);
-        return baseAnimation;
+        var emotionSetting = EmotionSettingsMap.GetValueOrDefault(emotion);
+        return (baseAnimation, emotionSetting.Speed, emotionSetting.XFade);
     }
     private static string GetAnimationKey(Emotion emotion, string baseAnimation)
     {
@@ -35,7 +53,6 @@ public static class PlayerAnimationEngine
             default:
                 return $"{baseAnimation}_Neutral";
         }
-
     }
     private static void ChangeAnimationResource(AnimationNodeStateMachine animationNodeStateMachine, string animationName, string nodeName)
     {

@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://cro4cnnnhmmhx"]
+
+[ext_resource type="Script" uid="uid://b07kryaobwy06" path="res://Scripts/UIPlayerEmotions.cs" id="1_b3bc3"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3b2b5"]
+
+[node name="Control" type="Control" unique_id=1837913859]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1039284078]
+layout_mode = 1
+offset_right = 40.0
+offset_bottom = 40.0
+texture = SubResource("AtlasTexture_3b2b5")
+
+[node name="ItemList" type="OptionButton" parent="." unique_id=1606031093]
+layout_mode = 0
+offset_left = 44.0
+offset_top = 33.0
+offset_right = 224.0
+offset_bottom = 77.0
+script = ExtResource("1_b3bc3")
+
+[connection signal="item_selected" from="ItemList" to="ItemList" method="_on_item_selected"]
