@@ -110,7 +110,6 @@ script = ExtResource("1_xm347")
 [node name="Player" parent="." unique_id=1084416437 node_paths=PackedStringArray("PlayerPositionMarker") instance=ExtResource("4_pyxa2")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -1.1402866, -0.9613993, 4.9843507e-08)
 PlayerPositionMarker = NodePath("../PositionMarker")
-CurrentEmotion = 2
 
 [node name="Area3D" type="Area3D" parent="." unique_id=1761223852]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 1.3403721, -12.447248)
@@ -174,10 +173,12 @@ mesh = SubResource("PlaneMesh_sdncu")
 environment = SubResource("Environment_ao0on")
 script = ExtResource("3_n8dvj")
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=1730502054]
-transform = Transform3D(1, 0, 0, 0, 0.99638695, -0.08493001, 0, 0.08493001, 0.99638695, -0.13520646, 1.4832566, 8.08699)
-fov = 39.6
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1730502054 node_paths=PackedStringArray("Target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6344068, 14.286631)
+fov = 22.6
+size = 5.088
 script = ExtResource("2_pyxa2")
+Target = NodePath("../Player")
 
 [node name="SmallBox" parent="." unique_id=512120657 instance=ExtResource("9_jpq3f")]
 

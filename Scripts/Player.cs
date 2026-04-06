@@ -11,49 +11,166 @@ using Godot;
 /// </summary>
 public partial class Player : CharacterBody3D
 {
+	/// <summary>
+	/// Particle effect shown at the clicked destination to confirm where the player will move.
+	/// </summary>
 	[Export] public GpuParticles3D PlayerPositionMarker { get; private set; }
+
+	/// <summary>
+	/// Emotion currently used to resolve animation variants through <see cref="PlayerAnimationEngine"/>.
+	/// </summary>
 	[Export] public PlayerAnimationEngine.Emotion CurrentEmotion { get; private set; } = PlayerAnimationEngine.Emotion.Neutral;
+
+	/// <summary>
+	/// High-level locomotion and emote states used to drive the animation state machine.
+	/// </summary>
 	private enum AnimationState
 	{
+		/// <summary>
+		/// The player is standing still and using its idle animation.
+		/// </summary>
 		Idle,
+
+		/// <summary>
+		/// The player is actively moving toward a navigation target.
+		/// </summary>
 		Walking,
-		Waving
+
+		/// <summary>
+		/// The player is performing the wave emote and temporarily suspends movement.
+		/// </summary>
+		Emote
 	}
+
+	/// <summary>
+	/// Animation state selected for the current frame.
+	/// </summary>
 	private AnimationState _currentAnimationState = AnimationState.Idle;
+
+	/// <summary>
+	/// Previously applied animation state, used to avoid redundant state machine transitions.
+	/// </summary>
 	private AnimationState? _previousAnimationState = AnimationState.Idle;
+
+	/// <summary>
+	/// Horizontal movement speed resolved from the active animation data.
+	/// </summary>
 	private float MoveSpeed = 2.0f;
+
+	/// <summary>
+	/// Distance from the destination at which movement is considered complete.
+	/// </summary>
 	private const float StopDistance = 0.15f;
+
+	/// <summary>
+	/// Minimum squared horizontal direction magnitude required before steering is considered valid.
+	/// </summary>
 	private const float DirectionEpsilon = 0.0001f;
+
+	/// <summary>
+	/// Length of the camera ray used to project mouse clicks into the 3D world.
+	/// </summary>
 	private const float RayLength = 1000.0f;
+
+	/// <summary>
+	/// Normal playback speed for non-emote animations.
+	/// </summary>
 	private const float DefaultAnimationSpeedScale = 1.0f;
-	private const float WaveDurationMultiplier = 3.0f;
+
+	/// <summary>
+	/// Base animation key used when the player is walking.
+	/// </summary>
 	private const string WalkingAnimation = "Walking";
+
+	/// <summary>
+	/// Base animation key used when the player is idle.
+	/// </summary>
 	private const string IdleAnimation = "Idle";
+
+	/// <summary>
+	/// Base animation key used when the player is performing an emote.
+	/// </summary>
 	private const string EmoteAnimation = "Emote";
+
+	/// <summary>
+	/// Fallback animation resource used to determine wave timing during initialization.
+	/// </summary>
 	private const string DefaultEmoteAnimationResource = "PlayerMotions/Emote_Neutral";
 
+	/// <summary>
+	/// Navigation agent responsible for generating and exposing the current path.
+	/// </summary>
 	private NavigationAgent3D _navAgent;
+
+	/// <summary>
+	/// Animation player that owns the raw animation resources and playback speed.
+	/// </summary>
 	private Godot.AnimationPlayer _animationPlayer;
+
+	/// <summary>
+	/// Animation tree that blends and transitions between high-level animation states.
+	/// </summary>
 	private AnimationTree _animationTree;
+
+	/// <summary>
+	/// Runtime playback controller for the animation tree's state machine.
+	/// </summary>
 	private AnimationNodeStateMachinePlayback _animationStateMachinePlayback;
+
+	/// <summary>
+	/// Root animation state machine used to look up emotion-specific animation data.
+	/// </summary>
 	private AnimationNodeStateMachine _animationStateMachine;
+
+	/// <summary>
+	/// Last clicked world-space destination the player is moving toward.
+	/// </summary>
 	private Vector3 _targetPosition = Vector3.Zero;
+
+	/// <summary>
+	/// Interpolation speed used when turning the character toward a target direction.
+	/// </summary>
 	private float _rotationSpeed = 7.0f;
+
+	/// <summary>
+	/// Project gravity cached from settings so movement can apply vertical physics consistently.
+	/// </summary>
 	private float _gravity;
-	private float _waveDuration;
-	private float _waveTimeRemaining;
+
+	/// <summary>
+	/// Tracks the previous left mouse button state so clicks are only handled once per press.
+	/// </summary>
 	private bool _wasLeftPressed;
+
+	/// <summary>
+	/// Indicates whether a valid movement destination is currently active.
+	/// </summary>
 	private bool _hasMoveTarget;
 
+	/// <summary>
+	/// Lightweight raycast result that keeps the world hit point together with the hit object.
+	/// </summary>
 	private readonly struct RaycastHit
 	{
+		/// <summary>
+		/// Creates a new raycast result wrapper.
+		/// </summary>
+		/// <param name="position">World-space hit position.</param>
+		/// <param name="collider">Object intersected by the raycast.</param>
 		public RaycastHit(Vector3 position, GodotObject collider)
 		{
 			Position = position;
 			Collider = collider;
 		}
 
+		/// <summary>
+		/// World-space position where the ray intersected the scene.
+		/// </summary>
 		public Vector3 Position { get; }
+
+		/// <summary>
+		/// Scene object hit by the raycast.
+		/// </summary>
 		public GodotObject Collider { get; }
 	}
 
@@ -75,7 +192,7 @@ public partial class Player : CharacterBody3D
 		EventBus.Instance.EmotionChanged += (newEmotion) =>
 		{
 			var animationState = _currentAnimationState;
-			_currentAnimationState = _currentAnimationState == AnimationState.Waving || _currentAnimationState == AnimationState.Walking
+			_currentAnimationState = _currentAnimationState == AnimationState.Emote || _currentAnimationState == AnimationState.Walking
 				? AnimationState.Idle
 				: AnimationState.Walking;
 			UpdateAnimationState();
@@ -84,9 +201,6 @@ public partial class Player : CharacterBody3D
 			UpdateAnimationState();
 		};
 
-		Animation waveAnimation = _animationPlayer.GetAnimation(DefaultEmoteAnimationResource);
-		_waveDuration = (waveAnimation?.Length ?? 0.0f) * WaveDurationMultiplier;
-		_previousAnimationState = AnimationState.Waving;
 		UpdateAnimationState();
 
 	}
@@ -102,9 +216,8 @@ public partial class Player : CharacterBody3D
 	public override void _PhysicsProcess(double delta)
 	{
 		HandleClickInput();
-		UpdateWaveState(delta);
 
-		if (_currentAnimationState == AnimationState.Waving)
+		if (_currentAnimationState == AnimationState.Emote)
 		{
 			RotateTowardsCamera(delta);
 			ApplyMovement(Vector3.Zero, delta);
@@ -141,7 +254,10 @@ public partial class Player : CharacterBody3D
 			{
 				if (DidClickPlayer(hit.Value.Collider))
 				{
-					StartWave();
+					var animationData = PlayerAnimationEngine.GetAnimation(CurrentEmotion, AnimationState.Emote.ToString(), _animationStateMachine);
+					_animationStateMachinePlayback.Travel(animationData.animationName);
+					_currentAnimationState = AnimationState.Emote;
+					
 				}
 				else
 				{
@@ -153,25 +269,17 @@ public partial class Player : CharacterBody3D
 
 		_wasLeftPressed = isLeftPressed;
 	}
+
+	/// <summary>
+	/// Moves the click marker effect to the chosen destination and restarts its emission.
+	/// </summary>
+	/// <param name="position">World-space location where the marker should appear.</param>
 	private void ShowPositionMarker(Vector3 position)
 	{
 		PlayerPositionMarker.GlobalPosition = position;
 		PlayerPositionMarker.Restart();
 		PlayerPositionMarker.Emitting = true;
 	}
-	/// <summary>
-	/// Moves the player into the wave state, clearing any active path so the body
-	/// stops immediately before the animation plays.
-	/// </summary>
-	private void StartWave()
-	{
-		_hasMoveTarget = false;
-		_currentAnimationState = AnimationState.Waving;
-		_waveTimeRemaining = _waveDuration;
-		_animationPlayer.SpeedScale = DefaultAnimationSpeedScale / WaveDurationMultiplier;
-		Velocity = new Vector3(0.0f, Velocity.Y, 0.0f);
-	}
-
 	/// <summary>
 	/// Starts or resumes navigation toward a clicked world position and interrupts
 	/// any currently playing wave animation.
@@ -183,29 +291,9 @@ public partial class Player : CharacterBody3D
 		_targetPosition = targetPosition;
 		_navAgent.TargetPosition = _targetPosition;
 		_hasMoveTarget = true;
-		_waveTimeRemaining = 0.0f;
 		_animationPlayer.SpeedScale = DefaultAnimationSpeedScale;
 	}
 
-	/// <summary>
-	/// Counts down the one-shot wave animation and returns the player to the normal
-	/// idle or walking flow when the clip duration has elapsed.
-	/// </summary>
-	/// <param name="delta">Elapsed physics time since the previous frame.</param>
-	private void UpdateWaveState(double delta)
-	{
-		if (_currentAnimationState != AnimationState.Waving)
-		{
-			return;
-		}
-
-		_waveTimeRemaining = Mathf.Max(0.0f, _waveTimeRemaining - (float)delta);
-		if (_waveTimeRemaining <= 0.0f)
-		{
-			_currentAnimationState = AnimationState.Idle;
-			_animationPlayer.SpeedScale = DefaultAnimationSpeedScale;
-		}
-	}
 
 	/// <summary>
 	/// Checks whether the clicked collider belongs to this player body or one of its children.
@@ -386,7 +474,7 @@ public partial class Player : CharacterBody3D
 			{
 				AnimationState.Idle => IdleAnimation,
 				AnimationState.Walking => WalkingAnimation,
-				AnimationState.Waving => EmoteAnimation,
+				AnimationState.Emote => EmoteAnimation,
 				_ => IdleAnimation
 			};
 			var animationData = PlayerAnimationEngine.GetAnimation(CurrentEmotion, animName, _animationStateMachine);
@@ -436,6 +524,18 @@ public partial class Player : CharacterBody3D
 
 		return new RaycastHit((Vector3)result["position"], collider);
 	}
+	public void StopWaving()
+	{
+		var animationData = PlayerAnimationEngine.GetAnimation(CurrentEmotion, AnimationState.Idle.ToString(), _animationStateMachine);
+		_animationStateMachinePlayback.Travel(animationData.animationName);
+	}
+
+	/// <summary>
+	/// Handles the signal fired when another body enters the watched area.
+	/// If the reported source is an <see cref="Area3D"/>, the area is removed after logging.
+	/// </summary>
+	/// <param name="body">The body reported by the signal.</param>
+	/// <param name="source">The source object associated with the overlap event.</param>
 	public void _on_area_3d_2_body_entered(GodotObject body, GodotObject source)
     {
 		GD.Print("Body entered: " + body.ToString());
@@ -452,6 +552,11 @@ public partial class Player : CharacterBody3D
         
 
     }
+
+	/// <summary>
+	/// Logs the terrain type currently being reported by a terrain interaction.
+	/// </summary>
+	/// <param name="terrainType">The terrain category being announced.</param>
 	public void ShoutOutTerrainType(TerrainArea.TerrainType terrainType)
 	{
 		GD.Print("Shouting out terrain type: " + terrainType);
