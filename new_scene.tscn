@@ -1,3 +1,20 @@
 [gd_scene format=3 uid="uid://c2q8cvssv1pmc"]
 
+[sub_resource type="NavigationMesh" id="NavigationMesh_jgkq6"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_adlmx"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kecmn"]
+
 [node name="NewScene" type="Node3D" unique_id=1880874614]
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="." unique_id=75178048]
+navigation_mesh = SubResource("NavigationMesh_jgkq6")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D" unique_id=454369101]
+mesh = SubResource("BoxMesh_adlmx")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=1389711963]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=915858854]
+shape = SubResource("BoxShape3D_kecmn")
